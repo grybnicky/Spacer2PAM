@@ -1,0 +1,28 @@
+Package: Spacer2PAM
+Title: An R Package for Predicting CRISPR System Protospacer Adjacent Motifs from CRISPR Array Spacer Sequences
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Grant",
+           family = "Rybnicky",
+           role = c("aut", "cre"),
+           email = "grantrybnicky2023@u.northwestern.edu",
+           comment = structure("0000-0002-0198-4596", .Names = "ORCID"))
+Description: This package allows users to predict CRISPR system protospacer adjacent motifs (PAMs) from CRISPR array spacers sequences. Biologically, spacers are derived from the genome of mobile genetic elements that infect organisms encoding a CRISPR system. The CRISPR machinery searches the invading nucleic acid for a PAM and then incorporates that nucleic acid as DNA into the CRISPR array. The PAM is also required for nucleic acid targeting and interference in many CRISPR systems. This package provides tools to manipulate and format spacer sequences and nucleotide alignment data in order to predict consensus PAM sequences for a given CRISPR system. 
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
+Depends: 
+        dplyr,
+        ggplot2,
+        ggseqlogo,
+        taxonomizr,
+        HelpersMG,
+        httr,
+        jsonlite,
+        spatstat.utils,
+        seqinr
+RoxygenNote: 7.1.0
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

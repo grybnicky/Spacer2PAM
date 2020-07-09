@@ -1,0 +1,152 @@
+---
+title: "Spacer2PAM: An R Package for Predicting CRISPR System Protospacer Adjacent Motifs from CRISPR Array Spacer Sequences"
+author: "G. A. Rybnicky"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spacer2PAM-Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
+
+```{r, include=FALSE}
+library(Spacer2PAM)
+```
+# Introduction
+The recent discovery and in-depth characterization of CRISPR-Cas9 and other CRISPR-Cas systems has led to a variety of technologies, including genome editing, genome modification, nucleic acid sensing, and next generation antimicrobials. Although CRISPR-Cas systems are powerful tool to alter biology, they are often toxic when heterologously expressed in bacteria. Fortunately, about half of all bacteria that have been sequenced encode at least one CRISPR-Cas system in their own genome which provides an alternative to heterologous CRISPR-Cas systems for genome manipulation.
+
+Endogenous CRISPR-Cas systems have been used to successfully edit the genomes of a few bacteria and archaea,but expansion of this method is hindered by the unique protospacer adjacent motif (PAM) sequence of each CRISPR-Cas system required to target a DNA sequence. That is to say that the PAM must be known in order to target an endogenous CRISPR-Cas system toward the genome that encodes it. However, the PAM often also recognized during the spacer acquisition process, which adds new spacers to the endogenous CRISPR array. During this process, foreign nucleic acid that is invading a organism is surveyed for the presence of a PAM and then the DNA adjacent is excised and inserted into the CRISR array. As such, reversing this process in silico would allow determination of the PAM sequence. Past efforts to do so have primarily consisted of indivdual researchers generating nucleotide alignments between CRISPR array spacers and sequences within a variable database, and then manually curating alignments to hypothesize a few potential PAMs. Other more sophisticated apporaches have built toos to find and present the nucleotide alignments to the user, but leaves the user to generate PAM predictions from the alignment data. 
+
+Here we present `Spacer2PAM`, a standardized in silico pipeline to predict PAM sequences for a given CRISPR-Cas system from annotated CRISPR array spacers. The tools in `Spacer2PAM` allow the user to manipulate and reformat CRISPR array spacer data and then predict PAM sequences from that data. Users may start with a FASTA file containg the CRISPR array spacers they wish to analyze (such as those from [CRISPRCasdb](https://crisprcas.i2bc.paris-saclay.fr/)) or from an annotated CSV file of  CRISPR array spacers. Once the `Spacer2PAM` pipeline is run, the user is presented with a data frame containing the statistics of their PAM prediction and a PDF file of a sequence logo annotated with the PAM prediction and score. `Spacer2PAM` is an easy to use pipeline for PAM prediction from CRISPR array spacers and is a key step toward enabling the use of endogenous CRISPR-Cas systems for genome engineering.   
+
+# Predicting PAMs: an Example  
+
+The *Bacillus halodurans* C-125 genome encodes a type I-C CRISPR system and 5 CRISPR arrays totalling 90 spacers. Recently, the type I-C effector complex was found to have a 5' YYC PAM preference by screen of randomized PAMs, with the strongest preference for a 5' TTC motif (doi: 10.1016/j.molcel.2016.02.031). Here we will use this CRISPR system as an example to demonstrate how to use the tools in Spacer2PAM.  
+
+## Getting Started  
+
+The first step in predicting a PAM with Spacer2PAM is to use `setCRISPRInfo()` in order to record which CRISPR system you are analyzing. This function collects the genus, species, and strain of the organism and an identifier to distinguish between CRISPR systems in the same organism. This information will be used by other functions to create file names and identifiers for data.
+```{r}
+setCRISPRInfo(genus = "Bacillus", 
+              species = "halodurans", 
+              strain = "C-125", 
+              crisprSystemNumber = 1)
+```
+
+Once you have input the information for the CRISPR system you are analyzing, you need to provide spacers to be analyzed. To do so, you will need the spacer sequences in FASTA format and  the same spacer sequences in a data frame. Luckily, you will only need one to start out with as Spacer2PAM includes functions to create either from the other. We will start with a data frame for now.  
+
+The data frame is a data type in R that allows you to store lists of variables in a defined order. For our purposes, we will think of it like a data table. The spacer data frame is used to store information about the spacers encoded by the CRISPR system you are analyzing. For your spacer data frame to be compatible with Spacer2PAM, it need to have the column headings "Strain", "Spacers", "Array.Orientation", "Repeat", "Array", and "Spacer". Each row of the data frame represents a single spacer and the associated contextual data for that spacer. The "Strain" column indicates the strain of organism that encoded the CRISPR system. This should be exactly the same as what was entered in `setCRISPRInfo()` and it will be important in later functions to join data frames. If future functions do not work, this is a good place to check. The "Spacers" column indicates the DNA sequence of the CRISPR array spacer on the forward strand. This should not include the CRISPR array repeat. The "Array.Orientation" column marks the direction in which the CRISPR array is encoded on the genome. This will be used to determine what is upstream and downstream when predicting a PAM. The "Repeat" column is present to help preserve data about the spacers, but is not used in any of the PAM predictions. This column is optional. The "Array" column indicates which CRISPR array the spacer came from and should be numeric. The "Spacer" column indicates the position of a spacer within a CRISPR array and should be numeric. An exerpt of the *B. halodurans* C-125 spacer dataframe is shown below.  
+```{r, echo=FALSE}
+spacerDF = read.csv(file = system.file("extdata", 
+                                       "Bacillus halodurans C-125 spacers with repeat.csv", 
+                                       package="Spacer2PAM"), 
+                    header = TRUE)
+knitr::kable(spacerDF[1:5,], format="html")
+```
+To generate a FASTA formatted file containing the spacer data frame spacers, you will use `df2fasta()`. By passing the spacer data frame as an argument to `df2fasta()`, a .fasta file will be generated and saved in the working directory. The description of each sequence will be a combination of the strain name, array number, and spacer number. An exerpt of the FASTA format output of `df2fasta()` is shown below.  
+
+>$>$C-125A1S1  
+TCACTGAAGACTCCACATCCAATGAGTGCGACGATT  
+$>$C-125A1S2  
+CTTACATCAAATTCCACGCACTCAGGCACACATC  
+$>$C-125A1S3  
+GAAGGAAATGAAGTTTTGATAAACTCCGTCTATACC  
+$>$C-125A1S4  
+CTAAAATCATCCGCCCAGCTCTGTAAGTTAGCCTT  
+$>$C-125A1S5  
+GGATTTTACGAGACATGGAGCGATATATAAACGCG  
+
+If you started from a FASTA formatted file instead of a data frame, the process of generating a spacer data frame is almost as easy. The function `fasta2df()` takes a FASTA formatted file and adds user entered information to generate the spacer data frame with the appropriate column headings. *B. halodurans* C-125 encodes 5 CRISPR arrays with 15, 16, 14, 35, and 10 spacers each, respectively. All of the CRISPR arrays are encoded on the forward-coding strand of the genome and have a consensus repeat sequence "GTCGCACTCTACATGAGTGCGTGGATTGAAAT". The command to generate the spacer data frame from the FASTA formatted file and this information from *B. halodurans* C-125 is shown below.  
+
+```{r}
+fasta2df(fastaFile = system.file("extdata", 
+                                 "Bacillus halodurans C-125 System 1 spacers.fasta", 
+                                  package="Spacer2PAM"),
+         arrayNumbers = c(1,2,3,4,5),
+         arrayLengths = c(15,16,14,35,10),
+         arrayOrientations = c("Forward","Forward","Forward","Forward","Forward"),
+         arrayRepeats = c("GTCGCACTCTACATGAGTGCGTGGATTGAAAT","GTCGCACTCTACATGAGTGCGTGGATTGAAAT","GTCGCACTCTACATGAGTGCGTGGATTGAAAT","GTCGCACTCTACATGAGTGCGTGGATTGAAAT","GTCGCACTCTACATGAGTGCGTGGATTGAAAT"),
+         spacerDataFrameName = "spacerDF")
+```
+
+## Finding Sequence Alignments  
+The purpose of the FASTA formatted file containing the spacer sequences is to allow easy and accurate use of NCBI's BLAST web interface. Due to the number of spacers present in many CRISPR encoding organisms, it is not feasible to use NCBI's API for directly submitting querries to the BLAST server. As a result, Spacer2PAM users have to submit querries to the [web interface](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&LINK_LOC=blasthome) or run BLAST locally. While the specific configuration of BLAST settings is up to the user, we recommend excluding eukaryotes (taxid:2759) from the search set and selecting the blastn algorithm. If using the web interface, once the alignment search is complete, select "Hit Table (csv)" from the "Download All" menu to download the alignments for all spacers in the FASTA file.  
+
+## Joining Spacer and Alignment Data
+In order to integrate the alignment data into the Spacer2PAM pipeline, the CSV file must be used to create an alignment data frame. `alignmentCSV2DF()` takes the alignment CSV file generated by the BLAST web interface and creates a dataframe properly formatted for use in the PAM prediction pipeline.  
+
+Now that the spacer and alignment data are both recorded in data frames, the two can be joined into a single data frame. `joinSpacerDFandAlignmentDF()` takes the alignment data frame and spacer data frame as arguments and joins them. In this process, the taxa and species of each alignment hit are added to the data frame. For this to happen, please ensure that taxonimizr is properly prepared. You can find their documentation [here](https://cran.r-project.org/web/packages/taxonomizr/vignettes/usage.html). Please note that this function may take more time to run than others in this package as its run time is dependant on the number of alignments provided.  
+
+## Predicting PAM Sequences  
+Now that the spacer and alignment data are joined, the information can be used to predict PAM sequences. `join2PAM` takes the joined data frame as an argument and allows the user to toggle filter criteria used to vet the alignments used to predict a PAM sequence. These filter criteria are: 
+
+* Whether only unique alignments are considered  
+* Whether alignments to the organism encoding the CRISPR system is excluded  
+* The maximum number of gaps in an alignment  
+* The maximum e value for an alignment  
+* The maximum number of nucleotides an alignment can be shorter than the spacer  
+* The maximum position at which the alignment can start  
+* Whether only alignments to prophages, bacteriophages, and plasmids are considered  
+
+The filter criteria default to those optimized for both PAM accuracy as well as efficient run time. Run time for this function varies by which filter criteria are selected, number of alignments input, and number of predictions generated. This function can also be used to iterate over a range of filter criteria by providing vectors of filter criteria values. Additional options that may be toggled in `join2PAM` are the length of the PAM prediction, which filter criteria combination to start with, whether to save the sequence logos generated, whether to record the sequences used to calculate the PAM prediction, and whether to delete the temporary FASTA formatted file used to retrieve genome sequences from Entrez.  
+
+In order to decrease run time, users may choose to use `submit2Phaster` in order to decrease the amount of time that `join2PAM` uses on prophage prediction. `submit2Phaster` will submit a list of accession numbers to Phaster, a prophage prediction server, via its API. This allows users to pre-run prophage predictions before running `join2PAM`. The amount of time prophage predictions take is dependent on the number of accession numbers submitted, as well as the traffic on the Phaster server. To help aleviate this time concern, the `join2PAM` default setting is to exclude prophage prediction.  
+
+## Interpretting Results
+There are two main outputs of `join2PAM`, a data frame called `collectionFrame` and sets of PAM predictions depicted as sequence logos. `collectionFrame` contains the filter criteria used for each prediction, the number of alignments that pass each filter, the PAM predictions, and the PAM score. An exerpt of an example *B. halodurans* C-125 `collectionFrame` is shown below.  
+```{r, echo=FALSE}
+collectionFrame = read.csv(file = system.file("extdata", 
+                                       "Bacillus halodurans C-125 collectionFrame.csv", 
+                                       package="Spacer2PAM"), 
+                    header = TRUE)
+knitr::kable(collectionFrame[1:5,], format="html")
+```
+Each row of `collectionFrame` represents a set of filter criteria and resultant PAM predictions. In the example above, all of the filter criteria were held constant except for `nucleotidesShorterThanProtospacer`. Each time the value of `nucleotidesShorterThanProtospacer` was changed, a new row was added to `collectionFrame` and the values of all filter criteria were recorded. The number of alignments that pass through each filter is also recorded under the `Filter_`  column, where the blank is filled in with the number of the filter. The filters are numbered according to their location in the code and are listed from left to right in the filter criteria record columns of `collectionFrame`.  This information can be used to determine which filter criteria are the most stringent and allows the user to identify causes of PAM prediction behavior. For instance, increasing the value of `nucleotidesShorterThanProtospacer` in the example above allows more alignments to pass through the set of filter criteria (`Filter6` column), but the PAM score does not increase proportioanlly. This indicates that the additional alignments that are allowed likely do not support the consensus NNNTC PAM prediction.  
+
+When predicting a PAM, there are two main factors to consider: positional significance and nucleotide identity. For a PAM to be functional, it must be in both the correct location relative to the protospacer as well as encode the right nucleotide sequence. To address this, `join2PAM` uses one method to determine significant nucleotide positions within the multiple sequence alignment and another method to determine what nucleotide is likely to be required at that position.  To determine the significance of a position, the R score for each nucleotide is calculated. The formula for R score is shown below.
+    
+<center>
+$R_{i} = log_{2}(4) - (H_{i}+e_{h})$  
+
+$H_{i} = -\sum(f_{b,i}\times log_{2}(f_{b,i}))$  
+
+$e_{h} = \frac{1}{ln(2)} \times \frac{4-1}{2h}$
+</center>
+
+$h$ is the number of sequences used to build the consensus PAM.  
+$f_{b,i}$ is the frequency($f$) of a nucleotide ($b$) at a position ($i$).  
+$R_{i}$ is the R score or information content encoded in a nucleotide position.  
+$H_{i}$ is the Shannon entropy of a given nucleotide position.  
+$e_{h}$ is a small sample size correction factor based on the number of sequences used to build the consensus PAM
+
+Any position that has an R score greater than one half standard deviation above the average R score across the flank length is deemed significant. Each significant position then passes to the second method, which determines the frequency of each of the four nucleotides at each significant position. If a nucleotide's frequency exceeds 25% (the frequency of each nucleotide by random chance), that nucleotide is added to the consensus PAM. Up to 3 nucleotides can be predicted at a position and are indicated by a "/" in the predicted sequence. The predicted PAM is stored in `collectionFrame` under the `upPAM` and `downPAM` columns.
+
+The scoring system associated with PAM predictions is based on the number of alignments used to generate the PAM prediction and how well the flanking sequences identified by those alignments form a consensus sequence. In other words, the score represents how well supported the PAM prediction is by both number of alignments and agreement between the alignment flanking regions. Generally, a more positive score is correlated to a more confident prediction. These scores can be found in the `upScore` and `downScore` columns of `collectionFrame`. The formula used to calculate score is shown below.
+
+<center>
+$Score = h(\frac{\sum_{i = 1}^{n_{sig}} f_{b,i_{sig}}\times R_{i_{sig}}}{log_{2}(4)\times n_{sig}})$  
+</center>
+
+$n_{sig}$ is the number of nucleotide positions that contribute to the consensus PAM.  
+
+The sequence logos generated represent a combination of all DNA sequences flanking  spacer alignments in their original genomic context. An example *B. halodurans* C-125 upstream PAM prediction sequence logo is shown below.  
+```{r, echo=FALSE, out.width="100%", out.height="550px"}
+knitr::include_graphics(system.file("extdata", 
+                                       "Bacillus halodurans C-125 System 1 Protospacers Upstream 1.pdf", 
+                                       package="Spacer2PAM"))
+
+```  
+
+The position along the x axis represents the location of the nucleotide relative to the spacer. The total height of each nucleotide on the y axis represents how much information is encoded at that position or the R score. DNA has a four letter alphabet, therefore it can encode a maximum of 2 bits of information at any single position $(log_{2}(4) = 2)$. This maximum information content is achieved by all nucleotides at a given position agreeing, meaning that conserved nucleotide positions will have a high information content and bit score. Likewise, a low information content is achieved by the frequency of each nucleotide at a given position approaching the probability by random chance (25%). A truely randomized nucleotide position would yield an information content of 0 bits and would not be visible on the sequence logo.  The height of each individual nucleotide at a position represents the frequency of the nucleotide at the position scaled by the total information content of the position. For example, a position that encodes 50% C and 50% G would have a total bit score of  1, but each nucleotide would be 0.5 bits in height.  
+
+From the prediction and sequence logo shown for *B. halodurans* C-125, we would conclude that a functional PAM would be a TC motif 5' to the protospacer. Given the prominence of T and C at the -3 position, we might hypothesize that there might be a preference for either nucleotide at that position resulting in a YTC motif 5' to the protospacer. As stated earlier, the experimentally determined PAM for this system is 5' YYC with 5' TTC being the most active.   
+
+
+
