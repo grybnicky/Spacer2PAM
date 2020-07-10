@@ -346,6 +346,26 @@ join2PAM = function(joinedData,
                 dplyr::mutate(upstream.rev = revcomplement(strand, upstream))%>%
                 dplyr::mutate(downstream.rev = revcomplement(strand, downstream))
 
+              repeatVec = c()
+              for(i in 1:nrow(upnDown)){
+                if (upnDown$Array.Orientation[i] == "Forward"){
+                  repeatVec[i] = tolower(as.character(upnDown$Repeat[i]))
+                }
+                else if (upnDown$Array.Orientation[i] == "Reverse"){
+                  repeatVec[i] = revcomplement(FALSE, tolower(as.character(upnDown$Repeat[i])))
+                }
+                }
+
+              repeatRightVec = c()
+              for(i in 1:length(repeatVec)){
+                repeatRightVec[i] = substr(repeatVec[i], nchar(repeatVec[i])-flankLength+1, nchar(repeatVec[i]))
+              }
+
+              repeatLeftVec = c()
+              for(i in 1:length(repeatVec)){
+                repeatLeftVec[i] = substr(repeatVec[i], 1, flankLength)
+              }
+
               #Generate vector of sequences for alignment
               whichFlank = function(orientation, strand, flank, revcompflank){
                 ifelse((orientation == "Forward") == strand, flank, revcompflank)
@@ -359,6 +379,10 @@ join2PAM = function(joinedData,
               }
               else{alignmentUp = c("")}
 
+              alignmentUp = alignmentUp[alignmentUp != repeatRightVec]
+
+              alignmentUp = alignmentUp[nchar(alignmentUp) == flankLength]
+
               alignmentDown = c()
               if(nrow(upnDown)>=1){
                 for (i in 1:nrow(upnDown)){
@@ -366,6 +390,10 @@ join2PAM = function(joinedData,
                 }
               }
               else{alignmentDown = c("")}
+
+              alignmentDown = alignmentDown[alignmentDown != repeatLeftVec]
+              alignmentDown = alignmentDown[nchar(alignmentDown) == flankLength]
+
 
               #Calculate PAM Scores
               #Generate frequency dataframe
