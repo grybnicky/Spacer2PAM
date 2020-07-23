@@ -36,11 +36,14 @@ join2PAM = function(joinedData,
                     RangeStart = 1,
                     saveLogo = T,
                     savePAMSeqs = F,
-                    removeFASTA = T
+                    removeFASTA = T,
+                    collectionFrameExist = F
                     ){
   nConditions = length(uniqueAlignsRange)*length(excludeSelfRange)*length(numGapsRange)*length(e.valueRange)*length(nucleotidesShorterThanProtospacerRange)*length(queryStartRange)*length(prophageOnlyRange)
 
+  if (collectionFrameExist == FALSE){
   collectionFrame = stats::setNames(data.frame(matrix(nrow = nConditions, ncol = 18)), c("uniqueAligns","excludeSelf", "numGaps", "e.value", "nucleotidesShorterThanProtospacer", "queryStart", "prophageOnly", "Filter0","Filter1", "Filter2", "Filter3", "Filter4", "Filter5", "Filter6","upPAM","upScore","downPAM","downScore"))
+  }
 
   counter = RangeStart
 
@@ -283,7 +286,7 @@ join2PAM = function(joinedData,
               if (nrow(isProphage)>= 1){
                 requestString = substr(requestString, 2, base::nchar(requestString))
 
-                eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", requestString), add_headers("http_version" = "http_version$1"))
+                eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", requestString), add_headers("http_version" = "$1"))
                 raweFetch = rawToChar(eFetchGet$content)
                 writeLines(raweFetch, "eFetch FASTA.fasta")
 
@@ -599,11 +602,12 @@ join2PAM = function(joinedData,
               collectionFrame$downPAM[counter] = paste(c(downpamSeq), collapse="")
               collectionFrame$downScore[counter] = downpamScore
 
+              assign("collectionFrame", collectionFrame, envir= .GlobalEnv)
+
               counter = counter+1
               Sys.sleep(3)
 
             }
-  assign("collectionFrame", collectionFrame, envir= .GlobalEnv)
 
   if(removeFASTA == T){
   file.remove("eFetch FASTA.fasta")
