@@ -8,9 +8,10 @@
 #' @examples
 #' joinSpacerDFandAlignmentDF(alignmentDF = yourAlignmentDataframe, spacerDF = yourSpacerDataframe, accessionDatabaseLocation = "theLocationOfYourTaxonomizerDatabase")
 joinSpacerDFandAlignmentDF = function(alignmentDF, spacerDF, accessionDatabaseLocation){
+
   #Mutate spacerDF to have query.acc.ver column
   mutspacerDF = spacerDF %>%
-    dplyr::mutate(query.acc.ver = sprintf("%sA%sPS%s",strain, spacerDF$Array, spacerDF$Spacer))
+    dplyr::mutate(query.acc.ver = sprintf("%sA%sS%s",strain, spacerDF$Array, spacerDF$Spacer))
 
   #Add Protospacer data to alignment table
   joineddata = alignmentDF %>%
