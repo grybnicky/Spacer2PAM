@@ -14,6 +14,7 @@
 #' @param saveLogo A value that determines whether the sequence logos generated are saved. Given a TRUE input, a PDF of the sequence logo is saved to the working directory. Defaults to TRUE.
 #' @param savePAMSeqs A value that determines whether the vector of sequences used to build the sequence logo are saved. Given a TRUE input, the vectors of upstream and downstream sequences are assigned to the global environment as upstreamPAMSeqs and downstreamPAMSeqs, respectively. Defaults to FALSE.
 #' @param removeFASTA A value that determines whether the temporary FASTA file from eFetch is deleted from the working directory.  Given a TRUE input, the FASTA file is deleted. Defaults to TRUE.
+#' @param collectionFrameExist A value that determines whether a new collectionFrame object will be generated or whether one exists. Given a TRUE input, data will be added to the extant collectionFrame and may write over existing data. This is useful when running a set of filter criteria is interupted and the user wants to continue from the interuption. Defaults to FALSE.
 #' @export
 #' @examples
 #' If you wanted to search the prediction space over the e-value cut-offs 0.01, 0.05, and 0.1 keeping the rest of the values at default and resulting in 3 total predictions, you would enter:
