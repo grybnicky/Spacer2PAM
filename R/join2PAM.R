@@ -42,6 +42,8 @@ join2PAM = function(joinedData,
                     ){
   nConditions = length(uniqueAlignsRange)*length(excludeSelfRange)*length(numGapsRange)*length(e.valueRange)*length(nucleotidesShorterThanProtospacerRange)*length(queryStartRange)*length(prophageOnlyRange)
 
+  httr::set_config(httr::config(http_version = 0))
+
   if (collectionFrameExist == FALSE){
   collectionFrame = stats::setNames(data.frame(matrix(nrow = nConditions, ncol = 18)), c("uniqueAligns","excludeSelf", "numGaps", "e.value", "nucleotidesShorterThanProtospacer", "queryStart", "prophageOnly", "Filter0","Filter1", "Filter2", "Filter3", "Filter4", "Filter5", "Filter6","upPAM","upScore","downPAM","downScore"))
   }
@@ -287,7 +289,10 @@ join2PAM = function(joinedData,
               if (nrow(isProphage)>= 1){
                 requestString = substr(requestString, 2, base::nchar(requestString))
 
-                eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", requestString), add_headers("http_version" = "$1"))
+                repeat{
+                eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", requestString))
+                if(eFetchGet$status_code ==200){break}}
+
                 raweFetch = rawToChar(eFetchGet$content)
                 writeLines(raweFetch, "eFetch FASTA.fasta")
 
@@ -384,7 +389,6 @@ join2PAM = function(joinedData,
               else{alignmentUp = c("")}
 
               alignmentUp = alignmentUp[alignmentUp != repeatRightVec]
-
               alignmentUp = alignmentUp[nchar(alignmentUp) == flankLength]
 
               alignmentDown = c()
@@ -398,7 +402,6 @@ join2PAM = function(joinedData,
               alignmentDown = alignmentDown[alignmentDown != repeatLeftVec]
               alignmentDown = alignmentDown[nchar(alignmentDown) == flankLength]
 
-
               #Calculate PAM Scores
               #Generate frequency dataframe
               upfreqFrame = as.data.frame(matrix(nrow = flankLength, ncol = 5))
@@ -410,16 +413,17 @@ join2PAM = function(joinedData,
                 for (j in 1:length(alignmentUp)){
                   nucs = append(nucs, substr(alignmentUp[j], i, i), after = length(nucs))
                 }
-                tempFrame = as.data.frame(table(nucs))
+                if (length(nucs[!is.na(nucs)]) <=0){tempFrame = data.frame(c("a","c","g","t"),c(0,0,0,0))}
+                else {tempFrame = as.data.frame(table(nucs))}
                 names(tempFrame) = c("posNucs", "freq")
                 posNucs = c("a", "t", "c","g")
                 posNucsFrame = data.frame(posNucs)
                 uptotalNucsFrame = dplyr::left_join(posNucsFrame, tempFrame, by = "posNucs")
                 uptotalNucsFrame[is.na(uptotalNucsFrame)] = 0
-                upfreqFrame$fa[i] = uptotalNucsFrame$freq[1]/ length(alignmentUp)
-                upfreqFrame$ft[i] = uptotalNucsFrame$freq[2]/ length(alignmentUp)
-                upfreqFrame$fc[i] = uptotalNucsFrame$freq[3]/ length(alignmentUp)
-                upfreqFrame$fg[i] = uptotalNucsFrame$freq[4]/ length(alignmentUp)
+                upfreqFrame$fa[i] = ifelse(length(alignmentUp) >=1, uptotalNucsFrame$freq[1]/ length(alignmentUp), 0)
+                upfreqFrame$ft[i] = ifelse(length(alignmentUp) >=1, uptotalNucsFrame$freq[2]/ length(alignmentUp), 0)
+                upfreqFrame$fc[i] = ifelse(length(alignmentUp) >=1, uptotalNucsFrame$freq[3]/ length(alignmentUp), 0)
+                upfreqFrame$fg[i] = ifelse(length(alignmentUp) >=1, uptotalNucsFrame$freq[4]/ length(alignmentUp), 0)
               }
 
               #Calculate entropy and R score for each position
@@ -438,13 +442,14 @@ join2PAM = function(joinedData,
                 dplyr::mutate(Hi = -1*(Hai+Hti+Hci+Hgi))
 
               upwithRScore = upwithTotalEntropy%>%
-                dplyr::mutate(R = log2(4)-(Hi+((1/log(2))*((4-1)/(2*length(alignmentUp))))))
+                dplyr::rowwise()%>%
+                dplyr::mutate(R = ifelse(length(alignmentUp) >=1, log2(4)-(Hi+((1/log(2))*((4-1)/(2*length(alignmentUp))))),0))
 
               upmeanRScore = mean(upwithRScore$R)
               upsdRScore = stats::sd(upwithRScore$R)
 
               #Significant position as defined by position R Score >= mean R score + 1/2 standard deviation of R scores
-              upisSigPos = upwithRScore%>%
+              upisSigPos = as.data.frame(upwithRScore)%>%
                 dplyr::mutate(Significant = (R >=upmeanRScore+(0.5*upsdRScore)))
 
               ###CONTINUE PAM SCORE CALCULATIONS, NEED Hi AVERAGE and Havgdev
@@ -495,16 +500,17 @@ join2PAM = function(joinedData,
                 for (j in 1:length(alignmentDown)){
                   nucs = append(nucs, substr(alignmentDown[j], i, i), after = length(nucs))
                 }
-                tempFrame = as.data.frame(table(nucs))
+                if (length(nucs[!is.na(nucs)]) <=0){tempFrame = data.frame(c("a","c","g","t"),c(0,0,0,0))}
+                else {tempFrame = as.data.frame(table(nucs))}
                 names(tempFrame) = c("posNucs", "freq")
                 posNucs = c("a", "t", "c","g")
                 posNucsFrame = data.frame(posNucs)
-                downtotalNucsFrame = dplyr::left_join(posNucsFrame, tempFrame, by = "posNucs")
-                downtotalNucsFrame[is.na(downtotalNucsFrame)] = 0
-                downfreqFrame$fa[i] = downtotalNucsFrame$freq[1]/ length(alignmentDown)
-                downfreqFrame$ft[i] = downtotalNucsFrame$freq[2]/ length(alignmentDown)
-                downfreqFrame$fc[i] = downtotalNucsFrame$freq[3]/ length(alignmentDown)
-                downfreqFrame$fg[i] = downtotalNucsFrame$freq[4]/ length(alignmentDown)
+                uptotalNucsFrame = dplyr::left_join(posNucsFrame, tempFrame, by = "posNucs")
+                uptotalNucsFrame[is.na(uptotalNucsFrame)] = 0
+                downfreqFrame$fa[i] = ifelse(length(alignmentDown) >=1, uptotalNucsFrame$freq[1]/ length(alignmentDown), 0)
+                downfreqFrame$ft[i] = ifelse(length(alignmentDown) >=1, uptotalNucsFrame$freq[2]/ length(alignmentDown), 0)
+                downfreqFrame$fc[i] = ifelse(length(alignmentDown) >=1, uptotalNucsFrame$freq[3]/ length(alignmentDown), 0)
+                downfreqFrame$fg[i] = ifelse(length(alignmentDown) >=1, uptotalNucsFrame$freq[4]/ length(alignmentDown), 0)
               }
 
               #Calculate entropy and R score for each position
@@ -523,13 +529,14 @@ join2PAM = function(joinedData,
                 dplyr::mutate(Hi = -1*(Hai+Hti+Hci+Hgi))
 
               downwithRScore = downwithTotalEntropy%>%
-                dplyr::mutate(R = log2(4)-(Hi+((1/log(2))*((4-1)/(2*length(alignmentDown))))))
+                dplyr::rowwise()%>%
+                dplyr::mutate(R = ifelse(length(alignmentDown) >=1, log2(4)-(Hi+((1/log(2))*((4-1)/(2*length(alignmentDown))))),0))
 
               downmeanRScore = mean(downwithRScore$R)
               downsdRScore = stats::sd(downwithRScore$R)
 
               #Significant position as defined by position R Score >= mean R score + 1/2 standard deviation of R scores
-              downisSigPos = downwithRScore%>%
+              downisSigPos = as.data.frame(downwithRScore)%>%
                 dplyr::mutate(Significant = (R >=downmeanRScore+(0.5*downsdRScore)))
 
               ###CONTINUE PAM SCORE CALCULATIONS, NEED Hi AVERAGE and Havgdev
@@ -571,13 +578,15 @@ join2PAM = function(joinedData,
               print(sprintf("%s %s with a PAM Score of: %s", paste(c("The downstream consensus PAM #",counter), collapse=""),paste(c( "is: ", downpamSeq), collapse=""), downpamScore))
 
               #Plot upstream WebLogo and save
-              if(nrow(upnDown)>=1 && saveLogo == T){
+              if(length(alignmentUp)>=1 && saveLogo == T){
                 ggplot2::ggplot()+ggseqlogo::geom_logo( as.character(toupper(alignmentUp)), seq_typ="DNA")+ ggplot2::annotate('text', x=ceiling(flankLength/2), y=2.1, label=sprintf("Consensus: %s Score: %s", paste(uppamSeq, collapse=""),round(uppamScore, digits = 2)), hjust = 0.5, size = 12)+ggseqlogo::theme_logo()+ggplot2::scale_x_discrete(name ="Position",limits=upstreamLabels)+ggplot2::theme(axis.text.x = element_text(size=32),axis.text.y = element_text(size=32), axis.title=element_text(size=48) ,axis.ticks = element_line(size = 1.5), axis.ticks.length = unit(20, "pt"))
                 ggplot2::ggsave(upstreamLogoOutput, width = 10, height = 7, units = "in")
+              }
 
 
 
                 #Plot downstream WebLogo
+              if(length(alignmentDown)>=1 && saveLogo == T){
                 ggplot2::ggplot()+ggseqlogo::geom_logo( as.character(toupper(alignmentDown)), seq_typ="DNA")+ ggplot2::annotate('text', x=ceiling(flankLength/2), y=2, label=sprintf("Consensus: %s Score: %s", paste(downpamSeq, collapse=""),round(downpamScore, digits = 2)), hjust = 0.5, size = 12)+ggseqlogo::theme_logo()+ggplot2::scale_x_discrete(name ="Position",limits=downstreamLabels)+ggplot2::theme(axis.text.x = element_text(size=32),axis.text.y = element_text(size=32), axis.title=element_text(size=48) ,axis.ticks = element_line(size = 1.5), axis.ticks.length = unit(20, "pt"))
                 ggplot2::ggsave(downstreamLogoOutput, width = 10, height = 7, units = "in")
               }
