@@ -17,7 +17,8 @@ join2PAM(
   RangeStart = 1,
   saveLogo = T,
   savePAMSeqs = F,
-  removeFASTA = T
+  removeFASTA = T,
+  collectionFrameExist = F
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ join2PAM(
 \item{savePAMSeqs}{A value that determines whether the vector of sequences used to build the sequence logo are saved. Given a TRUE input, the vectors of upstream and downstream sequences are assigned to the global environment as upstreamPAMSeqs and downstreamPAMSeqs, respectively. Defaults to FALSE.}
 
 \item{removeFASTA}{A value that determines whether the temporary FASTA file from eFetch is deleted from the working directory.  Given a TRUE input, the FASTA file is deleted. Defaults to TRUE.}
+
+\item{collectionFrameExist}{A value that determines whether a new collectionFrame object will be generated or whether one exists. Given a TRUE input, data will be added to the extant collectionFrame and may write over existing data. This is useful when running a set of filter criteria is interupted and the user wants to continue from the interuption. Defaults to FALSE.}
 }
 \description{
 This function allows you to filter alignment data and then predict protospacer adjacent motifs. Predicted motifs are scored based on number of alignments and the amount of information the predicted PAM encodes relative to the maximum possible information encoded.
