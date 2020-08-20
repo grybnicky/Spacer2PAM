@@ -335,14 +335,14 @@ join2PAM = function(joinedData,
 
               #Extract flankLength nucleotides upstream and downstream of alignment from genome sequence based on direction of alignment
 
-              upStrandAccount = function (seq, strand, start, length)
+              upStrandAccount = function (seq, strand, substart, querystart, length)
               {
-                ifelse(strand == TRUE, substr(seq, start-flankLength,start-1), substr(seq, start-length-flankLength+1,start-length))
+                ifelse(strand == TRUE, substr(seq, substart-querystart+1-flankLength,substart-querystart), substr(seq, substart+querystart-length-flankLength,substart+querystart-1-length))
               }
 
-              downStrandAccount = function (seq, strand, start, length)
+              downStrandAccount = function (seq, strand, substart, querystart, length)
               {
-                ifelse(strand == TRUE, substr(seq, start+length, start+length+flankLength-1), substr(seq, start+1, start+flankLength))
+                ifelse(strand == TRUE, substr(seq, substart-querystart+length, substart-querystart+length+flankLength-1), substr(seq, substart+querystart, substart+querystart+flankLength-1))
               }
 
               revcomplement = function (strand, flank){
@@ -350,8 +350,8 @@ join2PAM = function(joinedData,
               }
 
               upnDown = stranded %>%
-                dplyr::mutate(upstream = upStrandAccount(genomeSequence, strand, s..start, PS.length))%>%
-                dplyr::mutate(downstream = downStrandAccount(genomeSequence, strand, s..start, PS.length))%>%
+                dplyr::mutate(upstream = upStrandAccount(genomeSequence, strand, s..start, q..start, PS.length))%>%
+                dplyr::mutate(downstream = downStrandAccount(genomeSequence, strand, s..start, q..start, PS.length))%>%
                 dplyr::mutate(upstream.rev = revcomplement(strand, upstream))%>%
                 dplyr::mutate(downstream.rev = revcomplement(strand, downstream))
 
