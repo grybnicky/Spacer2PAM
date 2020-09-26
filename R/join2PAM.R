@@ -25,7 +25,7 @@
 #'
 #' If you wanted to search the prediction space combine the searhes above, resulting in 6 total predictions, you would enter:
 #' join2PAM(joinedData = nameOfJoinedDataframe, e.valueRange = c(0.01, 0.05, 0.1), prophageOnlyRange = c(TRUE, FALSE))
-join2PAM2 = function(joinedData,
+join2PAM = function(joinedData,
                      uniqueAlignsRange = T,
                      excludeSelfRange = T,
                      numGapsRange = 0,
