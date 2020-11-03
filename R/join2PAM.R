@@ -150,7 +150,24 @@ join2PAM = function(joinedData,
       #Determine if alignment is to prophage in bacterial genome
       #Build empty dataframe with proper column names
       vecTitle = c("subject.acc.ver","REGION","REGION_LENGTH","COMPLETENESS(score)","SPECIFIC_KEYWORD","REGION_POSITION","TRNA_NUM","TOTAL_PROTEIN_NUM","PHAGE_HIT_PROTEIN_NUM","HYPOTHETICAL_PROTEIN_NUM","PHAGE+HYPO_PROTEIN_PERCENTAGE","BACTERIAL_PROTEIN_NUM","ATT_SITE_SHOWUP","PHAGE_SPECIES_NUM","MOST_COMMON_PHAGE_NAME(hit_genes_count)","FIRST_MOST_COMMON_PHAGE_NUM","FIRST_MOST_COMMON_PHAGE_PERCENTAGE","GC_PERCENTAGE")
-      cumResultsFrame = stats::setNames(data.frame(matrix(ncol = 18, nrow = 0)), vecTitle)
+      cumResultsFrameEmpty = data.frame(subject.acc.ver = character(),
+                                   REGION = character(),
+                                   REGION_LENGTH = character(),
+                                   "COMPLETENESS(score)" = character(),
+                                   SPECIFIC_KEYWORD = character(),
+                                   REGION_POSITION = character(),
+                                   TRNA_NUM = character(),
+                                   TOTAL_PROTEIN_NUM = character(),
+                                   PHAGE_HIT_PROTEIN_NUM = character(),
+                                   HYPOTHETICAL_PROTEIN_NUM = character(),
+                                   "PHAGE+HYPO_PROTEIN_PERCENTAGE" = character(),
+                                   BACTERIAL_PROTEIN_NUM = character(),
+                                   ATT_SITE_SHOWUP = character(),
+                                   PHAGE_SPECIES_NUM = character(),
+                                   "MOST_COMMON_PHAGE_NAME(hit_genes_count)" = character(),
+                                   FIRST_MOST_COMMON_PHAGE_NUM = character(),
+                                   FIRST_MOST_COMMON_PHAGE_PERCENTAGE = character(),
+                                   GC_PERCENTAGE = character())
 
       #function to figure out which row has the dashes denoting the begining of the results
       recheck = function(){while(length(vertSplitPhaster)<5){
@@ -187,10 +204,13 @@ join2PAM = function(joinedData,
             #create dataframe with individual result
             assign("phasterTable", stats::setNames(data.frame(t(data.frame(vecEntry))), vecTitle), envir = .GlobalEnv)
             #bind individual result to all results for that genome
-            assign("indResultsFrame", rbind(indResultsFrame,phasterTable), envir = .GlobalEnv)
+            if (j == 34){assign("indResultsFrame", as.data.frame(dplyr::bind_rows(indResultsFrameEmpty, phasterTable)), envir = .GlobalEnv)}
+            else{assign("indResultsFrame", dplyr::bind_rows(indResultsFrame,phasterTable), envir = .GlobalEnv)}
           }
           #bind individual result to cumulative result
-          assign("cumResultsFrame", rbind(indResultsFrame,cumResultsFrame), envir = .GlobalEnv)
+          if (i ==1){assign("cumResultsFrame", dplyr::bind_rows(cumResultsFrameEmpty, indResultsFrame), envir = .GlobalEnv)}
+          else{assign("cumResultsFrame", dplyr::bind_rows(cumResultsFrame, indResultsFrame), envir = .GlobalEnv)}
+
           #print confirmation of adding results
           print(sprintf("result for %s complete", conAccList[i]))
         }
@@ -242,7 +262,24 @@ join2PAM = function(joinedData,
         }
 
         #initialize individual
-        indResultsFrame = stats::setNames(data.frame(matrix(ncol = 18, nrow = 0)), vecTitle)
+        indResultsFrameEmpty = data.frame(subject.acc.ver = character(),
+                                     REGION = character(),
+                                     REGION_LENGTH = character(),
+                                     "COMPLETENESS(score)" = character(),
+                                     SPECIFIC_KEYWORD = character(),
+                                     REGION_POSITION = character(),
+                                     TRNA_NUM = character(),
+                                     TOTAL_PROTEIN_NUM = character(),
+                                     PHAGE_HIT_PROTEIN_NUM = character(),
+                                     HYPOTHETICAL_PROTEIN_NUM = character(),
+                                     "PHAGE+HYPO_PROTEIN_PERCENTAGE" = character(),
+                                     BACTERIAL_PROTEIN_NUM = character(),
+                                     ATT_SITE_SHOWUP = character(),
+                                     PHAGE_SPECIES_NUM = character(),
+                                     "MOST_COMMON_PHAGE_NAME(hit_genes_count)" = character(),
+                                     FIRST_MOST_COMMON_PHAGE_NUM = character(),
+                                     FIRST_MOST_COMMON_PHAGE_PERCENTAGE = character(),
+                                     GC_PERCENTAGE = character())
 
         #check if still running
         check()
@@ -342,7 +379,7 @@ join2PAM = function(joinedData,
 
     downStrandAccount = function (seq, strand, substart, querystart, length)
     {
-      ifelse(strand == TRUE, substr(seq, substart-querystart+length, substart-querystart+length+flankLength-1), substr(seq, substart+querystart, substart+querystart+flankLength-1))
+      ifelse(strand == TRUE, substr(seq, substart-querystart+length+1, substart-querystart+length+flankLength), substr(seq, substart+querystart, substart+querystart+flankLength-1))
     }
 
     revcomplement = function (strand, flank){
@@ -356,6 +393,7 @@ join2PAM = function(joinedData,
       dplyr::mutate(downstream.rev = revcomplement(strand, downstream))
 
     repeatVec = c()
+    if (nrow(upnDown >=1)){
     for(i in 1:nrow(upnDown)){
       if (upnDown$Array.Orientation[i] == "Forward"){
         repeatVec[i] = tolower(as.character(upnDown$Repeat[i]))
@@ -363,7 +401,7 @@ join2PAM = function(joinedData,
       else if (upnDown$Array.Orientation[i] == "Reverse"){
         repeatVec[i] = revcomplement(FALSE, tolower(as.character(upnDown$Repeat[i])))
       }
-    }
+    }}
 
     repeatRightVec = c()
     for(i in 1:length(repeatVec)){
