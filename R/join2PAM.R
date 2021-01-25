@@ -393,7 +393,7 @@ join2PAM = function(joinedData,
       dplyr::mutate(downstream.rev = revcomplement(strand, downstream))
 
     repeatVec = c()
-    if (nrow(upnDown >=1)){
+    if (nrow(upnDown) >=1){
     for(i in 1:nrow(upnDown)){
       if (upnDown$Array.Orientation[i] == "Forward"){
         repeatVec[i] = tolower(as.character(upnDown$Repeat[i]))
