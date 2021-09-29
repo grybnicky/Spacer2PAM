@@ -20,7 +20,8 @@ Depends:
         httr,
         jsonlite,
         spatstat.utils,
-        seqinr
+        seqinr,
+        readr
 RoxygenNote: 7.1.1
 Suggests: 
     knitr,

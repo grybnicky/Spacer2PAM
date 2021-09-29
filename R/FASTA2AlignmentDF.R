@@ -6,7 +6,7 @@
 #' @examples
 #' FASTA2AlignmentDF()
 FASTA2AlignmentDF = function(FASTAfile){
-fastaFile = read_file(FASTAfile)
+fastaFile = readr::read_file(FASTAfile)
 
 urlEncodedFASTA = URLencode(fastaFile)
 
@@ -25,13 +25,13 @@ repeat{
   print(sprintf("Checking status of BLAST Search RID: %s", RID))
   requestStatus = httr::GET(url = sprintf("https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=get&FORMAT_OBJECT=SearchInfo&RID=%s", RID))
   requestStatusContent = content(requestStatus, as="text")
-    
+
   Status = substr(requestStatusContent,(regexpr("QBlastInfoBegin\n\t                Status=",requestStatusContent))+40,(regexpr("QBlastInfoBegin\n\t                Status=",requestStatusContent))+44)
-    
+
   if(Status == "READY")
-    {print("BLAST Results are ready") 
+    {print("BLAST Results are ready")
     break}
-    
+
   print("Will check status again in one minute")
   Sys.sleep(60)}
 
