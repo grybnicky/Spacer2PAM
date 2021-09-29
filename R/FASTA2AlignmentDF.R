@@ -17,14 +17,14 @@ if(spacersRequest$status_code == 414){
   stop()
 }
 
-requestContent = content(spacersRequest, as="text")
+requestContent = httr::content(spacersRequest, as="text")
 
 RID = substr(requestContent,(regexpr("QBlastInfoBegin\n    RID = ", requestContent))+26, ((regexpr("QBlastInfoBegin\n    RID = ", requestContent))+36))
 
 repeat{
   print(sprintf("Checking status of BLAST Search RID: %s", RID))
   requestStatus = httr::GET(url = sprintf("https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=get&FORMAT_OBJECT=SearchInfo&RID=%s", RID))
-  requestStatusContent = content(requestStatus, as="text")
+  requestStatusContent = httr::content(requestStatus, as="text")
 
   Status = substr(requestStatusContent,(regexpr("QBlastInfoBegin\n\t                Status=",requestStatusContent))+40,(regexpr("QBlastInfoBegin\n\t                Status=",requestStatusContent))+44)
 
