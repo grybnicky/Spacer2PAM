@@ -41,7 +41,7 @@ resultGETContent = rawToChar(resultGET$content)
 
 alignmentDF = readr::read_tsv(substr(resultGETContent,(regexpr("hits found",resultGETContent)+11), nchar(resultGETContent)-8), col_names = FALSE)
 
-colnames(alignmentDF)<-c("query acc.ver", "subject acc.ver", "% identity", "alignment length", "mismatches", "gap opens", "q. start", "q. end", "s. start", "s. end", "evalue", "bit score")
+colnames(alignmentDF)<-c("query.acc.ver", "subject.acc.ver", "%.identity", "alignment.length", "mismatches", "gap.opens", "q..start", "q..end", "s..start", "s..end", "evalue", "bit.score")
 
 alignmentDF = alignmentDF[complete.cases(alignmentDF),]
 
