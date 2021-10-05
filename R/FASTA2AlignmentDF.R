@@ -10,7 +10,7 @@ fastaFile = readr::read_file(FASTAfile)
 
 urlEncodedFASTA = URLencode(fastaFile)
 
-spacersRequest = httr::PUT(sprintf("https://blast.ncbi.nlm.nih.gov/Blast.cgi?QUERY=%s&DATABASE=nt&PROGRAM=blastn&CMD=put&ENTREZ_QUERY=NOT%20txid2759[ORGN]", urlEncodedFASTA))
+spacersRequest = httr::PUT(sprintf("https://blast.ncbi.nlm.nih.gov/Blast.cgi?QUERY=%s&DATABASE=nt&PROGRAM=blastn&CMD=put&ENTREZ_QUERY=NOT%%20txid2759[ORGN]", urlEncodedFASTA))
 
 if(spacersRequest$status_code == 414){
   print("URL is too long. Please resubmit with fewer spacers or submit BLAST request through the web interface manually. Manually BLAST results can be integrated using the function alignmentCSV2DF.")
