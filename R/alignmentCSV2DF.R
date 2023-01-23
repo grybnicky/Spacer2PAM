@@ -6,6 +6,6 @@
 #' @examples
 #' alignmentCSV2DF()
 alignmentCSV2DF = function(alignmentFile){
-  read.csv(alignmentFile, col.names = c("query acc.ver", "subject acc.ver", "% identity", "alignment length", "mismatches", "gap opens", "q. start", "q. end", "s. start", "s. end", "evalue", "bit score"), header = TRUE, stringsAsFactors = FALSE)
+  read.csv(alignmentFile, col.names = c("query acc.ver", "subject acc.ver", "% identity", "alignment length", "mismatches", "gap opens", "q. start", "q. end", "s. start", "s. end", "evalue", "bit score"), header = FALSE, stringsAsFactors = FALSE)
 }
 
