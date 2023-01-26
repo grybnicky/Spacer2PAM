@@ -325,13 +325,25 @@ join2PAM = function(joinedData,
 
     if (nrow(isProphage)>= 1){
       requestString = substr(requestString, 2, base::nchar(requestString))
-
-      repeat{
-        eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", requestString))
-        if(eFetchGet$status_code ==200){break}}
-
-      raweFetch = rawToChar(eFetchGet$content)
-      writeLines(raweFetch, "eFetch FASTA.fasta")
+      requestString <- as.list(strsplit(requestString, ",")[[1]])
+  
+      number_IDs_to_request <- lengths(regmatches(requestString, gregexpr(",", requestString)))
+      eFetchGet_list <- list()
+  
+      for (i in requestString) {
+        repeat{
+          eFetchGet = httr::GET(url = sprintf("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=%s&rettype=fasta", i))
+          if(eFetchGet$status_code ==200){break}}
+    
+        eFetchGet_list <- append(eFetchGet_list, list(eFetchGet))
+      }
+  
+      raweFetch_list <- c()
+      for (i in eFetchGet_list) {
+        raweFetch = rawToChar(i$content)
+        raweFetch_list <- append(raweFetch_list, raweFetch)
+      }
+      writeLines(raweFetch_list, "eFetch FASTA.fasta")
 
       #Read in Entrez generated FASTA
       trimFASTA = seqinr::read.fasta(file = "eFetch FASTA.fasta", as.string = TRUE)
